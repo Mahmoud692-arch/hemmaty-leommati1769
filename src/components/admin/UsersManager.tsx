@@ -318,6 +318,41 @@ export default function UsersManager() {
                   </div>
                 </div>
               )}
+
+              {detail.questions.length > 0 && (
+                <div className="rounded-xl border p-3">
+                  <div className="text-sm font-semibold mb-2 flex items-center gap-2">
+                    <MessageCircleQuestion className="h-4 w-4 text-[var(--gold)]" />
+                    أسئلة هذا المستخدم ({detail.questions.length})
+                  </div>
+                  <p className="text-[11px] text-muted-foreground mb-3">
+                    تُعرض هنا فقط لأنك في صفحة هذا المستخدم تحديداً. لا تظهر هذه الهوية مطلقاً في صفحة مراجعة الأسئلة العامة.
+                  </p>
+                  <div className="space-y-2">
+                    {detail.questions.map((q) => (
+                      <div key={q.id} className="text-xs border-b pb-2">
+                        <div className="flex items-center gap-2 mb-1">
+                          {q.is_anonymous && (
+                            <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground">
+                              🔒 أُرسل مجهولاً
+                            </span>
+                          )}
+                          {q.is_published ? (
+                            <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-600">منشور</span>
+                          ) : (
+                            <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-500/15 text-amber-600">قيد المراجعة</span>
+                          )}
+                          <span className="text-[10px] text-muted-foreground" dir="ltr">
+                            {new Date(q.created_at).toLocaleDateString("ar-EG")}
+                          </span>
+                        </div>
+                        <div className="font-medium">{q.question}</div>
+                        {q.answer && <div className="text-muted-foreground mt-1 line-clamp-2">→ {q.answer}</div>}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </DialogContent>
