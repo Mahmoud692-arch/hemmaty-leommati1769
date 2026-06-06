@@ -37,6 +37,15 @@ interface ProfileFull {
   created_at: string;
 }
 
+interface UserQuestionRow {
+  id: string;
+  question: string;
+  answer: string | null;
+  is_anonymous: boolean;
+  is_published: boolean;
+  created_at: string;
+}
+
 interface UserDetail {
   profile: ProfileFull;
   roles: string[];
@@ -44,6 +53,7 @@ interface UserDetail {
   questionsCount: number;
   commentsCount: number;
   attempts: { quiz_title: string; score: number | null; max_score: number | null; submitted_at: string | null }[];
+  questions: UserQuestionRow[];
 }
 
 function LockedCell({ value }: { value: string }) {
