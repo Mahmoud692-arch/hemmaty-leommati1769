@@ -123,13 +123,14 @@ export default function UsersManager() {
 
   const openDetail = async (p: ProfileFull) => {
     setLoadingDetail(true);
-    setDetail({ profile: p, roles: [], badges: [], questionsCount: 0, commentsCount: 0, attempts: [] });
-    const [{ data: rs }, { data: bs }, { count: qc }, { count: cc }, { data: atts }] = await Promise.all([
+    setDetail({ profile: p, roles: [], badges: [], questionsCount: 0, commentsCount: 0, attempts: [], questions: [] });
+    const [{ data: rs }, { data: bs }, { count: qc }, { count: cc }, { data: atts }, { data: uqs }] = await Promise.all([
       supabase.from("user_roles").select("role").eq("user_id", p.user_id),
       supabase.from("user_badges").select("badge_key, earned_at").eq("user_id", p.user_id),
       supabase.from("user_questions").select("*", { count: "exact", head: true }).eq("user_id", p.user_id),
       supabase.from("article_comments").select("*", { count: "exact", head: true }).eq("user_id", p.user_id),
       supabase.from("quiz_attempts").select("score, max_score, submitted_at, quiz_id").eq("user_id", p.user_id),
+      supabase.rpc("admin_list_user_questions", { _user_id: p.user_id }),
     ]);
     const quizIds = Array.from(new Set((atts ?? []).map((a) => a.quiz_id)));
     const { data: qz } = quizIds.length
@@ -146,6 +147,7 @@ export default function UsersManager() {
         quiz_title: titleMap.get(a.quiz_id) ?? "—",
         score: a.score, max_score: a.max_score, submitted_at: a.submitted_at,
       })),
+      questions: (uqs ?? []) as UserQuestionRow[],
     });
     setLoadingDetail(false);
   };
