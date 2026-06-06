@@ -37,6 +37,15 @@ interface ProfileFull {
   created_at: string;
 }
 
+interface UserQuestionRow {
+  id: string;
+  question: string;
+  answer: string | null;
+  is_anonymous: boolean;
+  is_published: boolean;
+  created_at: string;
+}
+
 interface UserDetail {
   profile: ProfileFull;
   roles: string[];
@@ -44,6 +53,7 @@ interface UserDetail {
   questionsCount: number;
   commentsCount: number;
   attempts: { quiz_title: string; score: number | null; max_score: number | null; submitted_at: string | null }[];
+  questions: UserQuestionRow[];
 }
 
 function LockedCell({ value }: { value: string }) {
@@ -113,13 +123,14 @@ export default function UsersManager() {
 
   const openDetail = async (p: ProfileFull) => {
     setLoadingDetail(true);
-    setDetail({ profile: p, roles: [], badges: [], questionsCount: 0, commentsCount: 0, attempts: [] });
-    const [{ data: rs }, { data: bs }, { count: qc }, { count: cc }, { data: atts }] = await Promise.all([
+    setDetail({ profile: p, roles: [], badges: [], questionsCount: 0, commentsCount: 0, attempts: [], questions: [] });
+    const [{ data: rs }, { data: bs }, { count: qc }, { count: cc }, { data: atts }, { data: uqs }] = await Promise.all([
       supabase.from("user_roles").select("role").eq("user_id", p.user_id),
       supabase.from("user_badges").select("badge_key, earned_at").eq("user_id", p.user_id),
       supabase.from("user_questions").select("*", { count: "exact", head: true }).eq("user_id", p.user_id),
       supabase.from("article_comments").select("*", { count: "exact", head: true }).eq("user_id", p.user_id),
       supabase.from("quiz_attempts").select("score, max_score, submitted_at, quiz_id").eq("user_id", p.user_id),
+      supabase.rpc("admin_list_user_questions", { _user_id: p.user_id }),
     ]);
     const quizIds = Array.from(new Set((atts ?? []).map((a) => a.quiz_id)));
     const { data: qz } = quizIds.length
@@ -136,6 +147,7 @@ export default function UsersManager() {
         quiz_title: titleMap.get(a.quiz_id) ?? "—",
         score: a.score, max_score: a.max_score, submitted_at: a.submitted_at,
       })),
+      questions: (uqs ?? []) as UserQuestionRow[],
     });
     setLoadingDetail(false);
   };
@@ -301,6 +313,41 @@ export default function UsersManager() {
                       <div key={i} className="flex justify-between text-xs border-b pb-1">
                         <span>{a.quiz_title}</span>
                         <span className="font-bold">{a.score ?? "—"} / {a.max_score ?? "—"}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {detail.questions.length > 0 && (
+                <div className="rounded-xl border p-3">
+                  <div className="text-sm font-semibold mb-2 flex items-center gap-2">
+                    <MessageCircleQuestion className="h-4 w-4 text-[var(--gold)]" />
+                    أسئلة هذا المستخدم ({detail.questions.length})
+                  </div>
+                  <p className="text-[11px] text-muted-foreground mb-3">
+                    تُعرض هنا فقط لأنك في صفحة هذا المستخدم تحديداً. لا تظهر هذه الهوية مطلقاً في صفحة مراجعة الأسئلة العامة.
+                  </p>
+                  <div className="space-y-2">
+                    {detail.questions.map((q) => (
+                      <div key={q.id} className="text-xs border-b pb-2">
+                        <div className="flex items-center gap-2 mb-1">
+                          {q.is_anonymous && (
+                            <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground">
+                              🔒 أُرسل مجهولاً
+                            </span>
+                          )}
+                          {q.is_published ? (
+                            <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-600">منشور</span>
+                          ) : (
+                            <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-500/15 text-amber-600">قيد المراجعة</span>
+                          )}
+                          <span className="text-[10px] text-muted-foreground" dir="ltr">
+                            {new Date(q.created_at).toLocaleDateString("ar-EG")}
+                          </span>
+                        </div>
+                        <div className="font-medium">{q.question}</div>
+                        {q.answer && <div className="text-muted-foreground mt-1 line-clamp-2">→ {q.answer}</div>}
                       </div>
                     ))}
                   </div>

@@ -1,90 +1,65 @@
-## المحور الأول: إغلاق الفجوات الحرجة
 
-### 1) الأمان أولاً (Migration واحدة)
-- توحيد سياسات `quiz_questions`: حذف السياسة المتسامحة وإبقاء سياسة الأدمن فقط؛ كشف أسئلة الكويز للمستخدم يكون عبر RPC `start_quiz_attempt` يُرجع الأسئلة بدون `correct_index`.
-- إخفاء `conditions`/`reward` التفصيلية في `achievement_rules` عن المستخدم العادي عبر VIEW عام `public_achievements` (id, name, description, is_active فقط).
-- تقييد `article_audio` SELECT لـ `authenticated` بدلاً من `public`.
-- إضافة Trigger يمنع إدراج صف في `avatar_change_log` إلا من خلال RPC `change_avatar` (SECURITY DEFINER) — توثيقه.
+# خطة المراجعة الشاملة والتطوير
 
-### 2) AvatarChanger في الواجهة
-- إدماج `<AvatarChanger />` داخل `/dashboard` و`/me` مع عرض التاريخ المتبقّي للـ60 يومًا.
+هذا عمل ضخم جداً (7 أنظمة + مراجعة معمارية). سأنفّذه على **مراحل** حتى لا تضيع الجودة، وأبدأ بالأنظمة الأهم. أحتاج موافقتك على الخطة والترتيب قبل البدء.
 
-### 3) المفضّلة (زر القلب)
-- مكوّن `<FavoriteButton entityType="article|lesson" entityId="..." />` يُستخدم في `articles.$slug.tsx` و`lessons.$slug.tsx`؛ يكتب في `article_favorites` / `lesson_favorites` ويعرض حالة فورية.
+## المرحلة 1 — الأنظمة الحرجة (أول دفعة تنفيذ)
 
-### 4) استئناف القراءة/المشاهدة
-- داخل صفحة المقال: عند Mount نسجّل `last_visits` (entity_type='article'); عند Scroll نحدّث `scroll_percent`.
-- داخل صفحة الدرس: نُحدّث `lesson_progress.last_position_sec` كل 10 ثوانٍ، ونعتبر `completed=true` عند ≥90%.
-- في الهوم بيج (`/`): قسم جديد "تابع من حيث توقّفت" يجلب آخر 3 من `last_visits` للمستخدم المسجّل.
+### 1) نظام «صارحني» مجهول الهوية بالكامل
+- جدول `anonymous_messages` منفصل (لا يربط `user_id` في عرض الأدمن).
+- داخلياً نخزّن `user_id` (مشفّر منطقياً عبر RLS) لاستخدامه فقط في **صفحة المستخدم داخل لوحة الإدارة**.
+- View للأدمن: `admin_anonymous_messages_view` يُرجع الرسائل بدون `user_id`.
+- دالة `get_user_anonymous_messages(uid)` (security definer + has_role admin) لعرضها داخل صفحة المستخدم فقط.
+- عند نشر الرد: لا يظهر اسم المرسل للجمهور (موجود جزئياً في `user_questions` — سنفصل صارحني عنه أو نضيف عمود `is_anonymous_strict`).
 
-### 5) نقاط الدرس → الرحلة الإيمانية
-- Trigger على `lesson_progress` عند `completed=true` لأول مرة:
-  - يُضيف 5 نقاط في `points_adjustments`.
-  - يستدعي `recompute_journey_level(user_id)` لتحديث المستوى.
-  - يُنشئ إشعارًا "أتممتَ درسًا — +5 نقاط".
+### 2) نظام الصلاحيات المرن (RBAC)
+- `app_permission` enum: `manage_articles, manage_hadiths, manage_stories, review_content, manage_suggestions, manage_comments, manage_reports, manage_users, manage_points, view_analytics`.
+- جدول `role_permissions(role, permission)` + جدول `user_permissions(user_id, permission)` للصلاحيات المباشرة.
+- دالة `has_permission(uid, perm)` security definer.
+- استبدال `has_role(admin)` تدريجياً في الـ RLS بـ `has_permission(...)` (مع إبقاء admin = كل الصلاحيات).
+- واجهة في `UsersManager` لمنح/سحب صلاحيات فردية بدل ترقية كاملة.
 
-### 6) إصلاح صفحة الكويزات
-- RPC جديدة `start_quiz_attempt(quiz_id)` تُرجع `attempt_id` + `questions` (بدون `correct_index`).
-- RPC `submit_quiz_attempt(attempt_id, answers[])` تحسب النتيجة وتمنع تكرار المحاولة وفق `attempt_policy`.
-- تحديث `quizzes.$id.tsx` لاستخدام الـ RPCs بدل القراءة المباشرة من `quiz_questions`.
+### 3) نظام التعليقات على المقالات + القصص + الأحاديث
+- تعميم جدول `article_comments` → `content_comments(content_type, content_id, ...)` أو إضافة `story_comments` و`hadith_comments` بنفس البنية. (الأبسط: تعميم الموجود).
+- CRUD كامل: إضافة/تعديل/حذف/إبلاغ + مراجعة من لوحة الإدارة (موجودة جزئياً لـarticles).
 
-### 7) منظومة الإشعارات التلقائية (Triggers)
-- Trigger على `articles` عند `status` يصبح `published`: broadcast لكل المستخدمين النشطين خلال 30 يومًا.
-- Trigger على `user_questions` عند `is_published=true`: إشعار لصاحب السؤال + رابط للإجابة.
-- Trigger على `user_badges` عند الإدراج: إشعار "حصلتَ على شارة جديدة".
-- تبويب جديد "إشعاراتي" داخل `/dashboard` بقائمة كاملة قابلة للتصفية والتعليم كمقروء.
+### 4) نظام الإبلاغ عن الأخطاء
+- جدول `content_reports(reporter_id, content_type, content_id, content_url, description, status: new|reviewing|resolved)`.
+- زر «إبلاغ عن خطأ» في صفحات: المقال، القصة، الحديث، التعليق.
+- لوحة إدارة `ReportsManager` لتغيير الحالة.
 
-### 8) توسيع AI Admin
-أدوات إضافية في `admin-assistant`:
-- `upsert_quote` (الاقتباسات الذكية).
-- `regenerate_article_audio` (يستدعي `article-tts`).
-- `grant_badge` / `revoke_badge` لمستخدم محدد (مع تحقّق صارم: المُستدعي أدمن + المنح فقط للآخرين، لا يمنح نفسه).
-- `bulk_import_articles` (مصفوفة JSON دفعة واحدة كمسودّات).
+## المرحلة 2 — أنظمة المحتوى والنقاط
 
----
+### 5) اقتراح المحتوى من المستخدمين
+- جدول `content_suggestions(user_id, type, title, body, status, published_as_id, target_section)`.
+- صفحة `/me/suggest` بثلاثة نماذج (مقال/قصة/حديث).
+- لوحة `SuggestionsManager` للموافقة/الرفض + اختيار قسم النشر → ينشئ سجل في الجدول المناسب.
 
-## التفاصيل التقنية
+### 6) نقاط مكافأة المحتوى المقترح
+- إعداد قابل للتعديل في `public_site_settings` (key=`suggestion_reward_points`).
+- عند الموافقة → `award_points(user_id, points, 'suggestion_approved', suggestion_id)`.
 
-**Migration واحدة شاملة:**
-```sql
--- quiz_questions: حذف السياسة المتسامحة
-DROP POLICY "quiz_questions: admin only SELECT" ON quiz_questions;
--- (تبقى سياسة "الإدارة تدير أسئلة الكويز" ALL admin)
--- إنشاء RPC start_quiz_attempt + submit_quiz_attempt
+### 7) تحسين احتساب نقاط القراءة
+- المقالات: ≥ 180 ثانية فعلية + scroll ≥ 70%.
+- الأحاديث: ≥ 60 ثانية فعلية.
+- استخدام `Page Visibility API` (إيقاف العدّاد عند `document.hidden`).
+- منع إعادة التحديث: `points_awarded=true` مرة واحدة (موجود).
+- تسجيل `effective_read_seconds` في `article_read_progress` و`hadith_reads`.
 
--- VIEW public_achievements
-CREATE VIEW public_achievements AS
-  SELECT id, name, description, is_active FROM achievement_rules WHERE is_active;
+## المرحلة 3 — تقرير المراجعة المعمارية
 
--- article_audio: تقييد لـ authenticated
-DROP POLICY "الصوتيات للجميع" ON article_audio;
-CREATE POLICY "الصوتيات للمسجّلين" ON article_audio FOR SELECT TO authenticated USING (true);
-
--- Triggers: نشر مقال، نشر إجابة، منح شارة، إكمال درس
--- RPC: grant_badge_to_user (admin-only, target != self)
-```
-
-**ملفات React الجديدة:**
-- `src/components/FavoriteButton.tsx`
-- `src/components/ResumeReading.tsx` (في الهوم)
-- `src/hooks/useTrackProgress.ts` (للمقال + الدرس)
-
-**ملفات معدّلة:**
-- `src/routes/dashboard.tsx` (Avatar + tab إشعارات)
-- `src/routes/me.tsx` (Avatar)
-- `src/routes/articles.$slug.tsx` (مفضّلة + tracking)
-- `src/routes/lessons.$slug.tsx` (مفضّلة + progress)
-- `src/routes/quizzes.$id.tsx` (RPC الجديدة)
-- `src/routes/index.tsx` (قسم Resume)
-- `src/components/admin/AdminAssistant.tsx` (لا يتغيّر — UI ذاتي)
-- `supabase/functions/admin-assistant/index.ts` (4 أدوات جديدة)
+أكتب تقريراً مختصراً (سيظهر في الشات) يغطي:
+- الأمان: ما تم تثبيته + توصيات إضافية (rate limiting، CAPTCHA على «صارحني»، فحص الصور للـ avatars).
+- الأداء: lazy load للأقسام الكبيرة، تقليل queries في `me.tsx` و`HomepageSectionsManager`.
+- UX: skeleton states، error boundaries، toast موحّد، فاصل واضح بين المحتوى المؤكد والمسوّدة.
+- نواقص قبل الإطلاق: سياسة الخصوصية، شروط الاستخدام، صفحة 404 مخصصة، sitemap.xml، تتبع أحداث، باك أب دوري.
 
 ---
 
-## الترتيب التنفيذي
-1. Migration الأمان + Triggers + RPCs (جولة DB).
-2. مكوّنات React الجديدة + ربط الواجهات.
-3. توسيع AI Admin.
-4. اختبار يدوي سريع لكل مسار.
+## ملاحظات تنفيذية مهمة
 
-سأنفّذ كل المحاور بالتتابع دون انتظار، وأرد فقط عند الانتهاء.
+- العمل يتطلب **عدة migrations** (كل واحدة تحتاج موافقتك في الـ Supabase).
+- التعديلات على الكود تتم على دفعات بعد كل migration.
+- **سؤال مهم قبل البدء**: هل أبدأ مباشرة بالمرحلة 1 كلها معاً (4 migrations + كود)، أم نظام واحد في كل دورة لتسهيل المراجعة؟
+
+اقترح: **نظام واحد في كل دورة** بالترتيب أعلاه. وافق وسأبدأ فوراً بـ «صارحني» المجهول.
