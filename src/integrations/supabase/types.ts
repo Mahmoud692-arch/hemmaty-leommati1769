@@ -1817,6 +1817,33 @@ export type Database = {
         }
         Returns: Json
       }
+      admin_list_questions: {
+        Args: never
+        Returns: {
+          answer: string
+          answered_at: string
+          created_at: string
+          id: string
+          is_anonymous: boolean
+          is_published: boolean
+          question: string
+          sender_email: string
+          sender_name: string
+          sender_user_id: string
+        }[]
+      }
+      admin_list_user_questions: {
+        Args: { _user_id: string }
+        Returns: {
+          answer: string
+          answered_at: string
+          created_at: string
+          id: string
+          is_anonymous: boolean
+          is_published: boolean
+          question: string
+        }[]
+      }
       admin_moderate_comment: {
         Args: { _action: string; _comment_id: string }
         Returns: boolean
