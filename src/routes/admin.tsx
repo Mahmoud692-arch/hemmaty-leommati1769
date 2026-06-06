@@ -306,6 +306,17 @@ function AdminPage() {
             <div className="space-y-4 mb-10">
               {pending.map((q) => (
                 <div key={q.id} className="card-elegant rounded-2xl p-5">
+                  <div className="flex items-center gap-2 mb-2 text-xs">
+                    {q.is_anonymous ? (
+                      <span className="px-2 py-0.5 rounded-full bg-muted text-muted-foreground">
+                        🔒 مجهول — لا يمكن تحديد هوية المرسل
+                      </span>
+                    ) : (
+                      <span className="px-2 py-0.5 rounded-full bg-[var(--gold)]/15 text-[var(--gold)]">
+                        سؤال باسم المستخدم
+                      </span>
+                    )}
+                  </div>
                   <p className="font-semibold mb-3">{q.question}</p>
                   <Textarea
                     placeholder="اكتب الإجابة..."
