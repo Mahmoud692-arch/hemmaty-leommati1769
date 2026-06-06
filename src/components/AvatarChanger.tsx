@@ -17,13 +17,24 @@ export default function AvatarChanger() {
       toast.error("الحد الأقصى 2 ميغابايت");
       return;
     }
+    const ALLOWED: Record<string, string> = {
+      "image/jpeg": "jpg",
+      "image/png": "png",
+      "image/webp": "webp",
+      "image/gif": "gif",
+    };
+    const mime = ALLOWED[file.type] ? file.type : "";
+    if (!mime) {
+      toast.error("نوع الصورة غير مدعوم. استخدم JPG/PNG/WEBP/GIF");
+      return;
+    }
     setBusy(true);
     try {
-      const ext = file.name.split(".").pop() || "jpg";
+      const ext = ALLOWED[mime];
       const path = `${user.id}/avatar-${Date.now()}.${ext}`;
       const { error: upErr } = await supabase.storage
         .from("avatars")
-        .upload(path, file, { upsert: true, contentType: file.type });
+        .upload(path, file, { upsert: true, contentType: mime });
       if (upErr) throw upErr;
       const { data: pub } = supabase.storage.from("avatars").getPublicUrl(path);
       const { data, error } = await supabase.rpc("change_avatar", { _new_url: pub.publicUrl });
@@ -62,7 +73,7 @@ export default function AvatarChanger() {
       </div>
       <div>
         <label className="inline-flex">
-          <input type="file" accept="image/*" className="hidden" onChange={onPick} disabled={busy} />
+          <input type="file" accept="image/jpeg,image/png,image/webp,image/gif" className="hidden" onChange={onPick} disabled={busy} />
           <Button asChild size="sm" variant="outline" disabled={busy}>
             <span>
               {busy ? <Loader2 className="h-4 w-4 ms-1 animate-spin" /> : <Camera className="h-4 w-4 ms-1" />}

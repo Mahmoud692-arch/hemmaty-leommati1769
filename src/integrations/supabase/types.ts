@@ -71,30 +71,6 @@ export type Database = {
         }
         Relationships: []
       }
-      article_audio: {
-        Row: {
-          article_slug: string
-          audio_url: string
-          generated_at: string
-          id: string
-          voice: string | null
-        }
-        Insert: {
-          article_slug: string
-          audio_url: string
-          generated_at?: string
-          id?: string
-          voice?: string | null
-        }
-        Update: {
-          article_slug?: string
-          audio_url?: string
-          generated_at?: string
-          id?: string
-          voice?: string | null
-        }
-        Relationships: []
-      }
       article_comments: {
         Row: {
           article_slug: string
