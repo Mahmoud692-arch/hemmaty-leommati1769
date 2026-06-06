@@ -143,12 +143,21 @@ function AdminPage() {
   const refresh = async () => {
     const [{ data: qs }, { count: usersCount }, { count: qCount }, { count: arCount }] =
       await Promise.all([
-        supabase.from("user_questions").select("*").order("created_at", { ascending: false }),
+        supabase.rpc("admin_list_questions"),
         supabase.from("profiles").select("*", { count: "exact", head: true }),
         supabase.from("user_questions").select("*", { count: "exact", head: true }),
         supabase.from("article_reads").select("*", { count: "exact", head: true }),
       ]);
-    setQuestions((qs as AdminQuestion[]) ?? []);
+    // Anonymous questions arrive with sender_user_id = null (admin cannot identify them here).
+    setQuestions(((qs as any[]) ?? []).map((q) => ({
+      id: q.id,
+      question: q.question,
+      answer: q.answer,
+      is_anonymous: q.is_anonymous,
+      is_published: q.is_published,
+      created_at: q.created_at,
+      user_id: q.sender_user_id ?? "",
+    })));
     setStats({ users: usersCount ?? 0, questions: qCount ?? 0, articles: arCount ?? 0 });
   };
 
