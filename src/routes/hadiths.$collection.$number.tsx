@@ -117,49 +117,51 @@ function HadithPage() {
     checkNav();
   }, [hadith.number, collection]);
 
-  // Record read
+  // Track effective foreground seconds and award via RPC (server-validated)
   useEffect(() => {
     if (!user) return;
-    const run = async () => {
-      const points = await getActionPointValue("points_hadith_read");
-      const { data: existing } = await supabase
-        .from("hadith_reads")
-        .select("id")
-        .eq("user_id", user.id)
-        .eq("hadith_collection", collection)
-        .eq("hadith_number", hadith.number)
-        .maybeSingle();
+    let effectiveSeconds = 0;
+    let lastTick = Date.now();
+    let awarded = false;
 
-      if (existing) return;
+    const tick = window.setInterval(() => {
+      const now = Date.now();
+      if (!document.hidden) {
+        effectiveSeconds += Math.round((now - lastTick) / 1000);
+      }
+      lastTick = now;
+    }, 1000);
 
-      await supabase
-        .from("hadith_reads")
-        .insert({
-          user_id: user.id,
-          hadith_collection: collection,
-          hadith_number: hadith.number
+    const onVisibility = () => { lastTick = Date.now(); };
+    document.addEventListener("visibilitychange", onVisibility);
+
+    const send = async () => {
+      if (awarded) return;
+      try {
+        const { data } = await supabase.rpc("award_hadith_reading_points", {
+          _collection: collection,
+          _number: hadith.number,
+          _seconds: effectiveSeconds,
         });
-
-      const { data: prof } = await supabase
-        .from("profiles")
-        .select("hadiths_read, total_points")
-        .eq("user_id", user.id)
-        .single();
-
-      if (prof) {
-        await supabase
-          .from("profiles")
-          .update({
-            hadiths_read: (prof.hadiths_read ?? 0) + 1,
-            total_points: (prof.total_points ?? 0) + points,
-          })
-          .eq("user_id", user.id);
-        toast.success(`+${points} نقاط لقرائتك للحديث 🎉`);
-        refreshProfile();
+        const res = data as { ok?: boolean; awarded?: boolean; points?: number } | null;
+        if (res?.awarded) {
+          awarded = true;
+          toast.success(`+${res.points ?? 5} نقاط لقراءتك الحديث 🎉`);
+          refreshProfile();
+        }
+      } catch {
+        // silent — server validates
       }
     };
-    const t = setTimeout(run, 3000);
-    return () => clearTimeout(t);
+
+    const sendInterval = window.setInterval(send, 15000);
+
+    return () => {
+      window.clearInterval(tick);
+      window.clearInterval(sendInterval);
+      document.removeEventListener("visibilitychange", onVisibility);
+      send();
+    };
   }, [user, hadith.number, collection, refreshProfile]);
 
   // Load favorite state
