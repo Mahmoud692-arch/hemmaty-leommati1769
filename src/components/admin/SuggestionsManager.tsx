@@ -49,8 +49,8 @@ export default function SuggestionsManager() {
     const { error } = await supabase.rpc("admin_review_suggestion", {
       _id: selected.id,
       _approve: approve,
-      _admin_notes: notes.trim() || null,
-      _target_section: section.trim() || null,
+      _admin_notes: notes.trim() || undefined,
+      _target_section: section.trim() || undefined,
     });
     setSubmitting(false);
     if (error) { toast.error(error.message || "تعذّر التحديث"); return; }

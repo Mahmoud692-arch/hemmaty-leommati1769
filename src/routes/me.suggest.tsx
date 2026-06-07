@@ -65,7 +65,7 @@ function SuggestPage() {
       _content_type: type,
       _title: title.trim(),
       _body: body.trim(),
-      _source: source.trim() || null,
+      _source: source.trim() || undefined,
     });
     setSubmitting(false);
     if (error) { toast.error(error.message || "تعذّر الإرسال"); return; }
