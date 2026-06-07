@@ -61,29 +61,32 @@ function ArticlePage() {
   const { user, refreshProfile } = useAuth();
 
   const startTimeRef = useRef<number>(Date.now());
+  const effectiveSecondsRef = useRef<number>(0);
   const awardedRef = useRef<boolean>(false);
 
-  // Track scroll percent and seconds; award points when ≥85% via RPC (server-side enforced)
-  // Also upserts last_visits so the home page can show "Resume reading"
+  // Effective seconds = only while tab is visible. Page Visibility API.
   useEffect(() => {
     if (!user) return;
-    startTimeRef.current = Date.now();
+    effectiveSecondsRef.current = 0;
     awardedRef.current = false;
+    startTimeRef.current = Date.now();
 
-    // record visit (best-effort)
-    supabase
-      .from("last_visits")
-      .upsert(
-        {
-          user_id: user.id,
-          entity_type: "article",
-          entity_id: article.slug,
-          title: article.title,
-          scroll_percent: 0,
-        },
-        { onConflict: "user_id,entity_type,entity_id" },
-      )
-      .then(() => {});
+    let lastTick = Date.now();
+    const tickInterval = window.setInterval(() => {
+      const now = Date.now();
+      if (!document.hidden) {
+        effectiveSecondsRef.current += Math.round((now - lastTick) / 1000);
+      }
+      lastTick = now;
+    }, 1000);
+
+    const onVisibility = () => { lastTick = Date.now(); };
+    document.addEventListener("visibilitychange", onVisibility);
+
+    supabase.from("last_visits").upsert(
+      { user_id: user.id, entity_type: "article", entity_id: article.slug, title: article.title, scroll_percent: 0 },
+      { onConflict: "user_id,entity_type,entity_id" },
+    ).then(() => {});
 
     const sendProgress = async () => {
       if (awardedRef.current) return;
@@ -92,21 +95,13 @@ function ArticlePage() {
       const scrollPct = totalScrollable > 0
         ? Math.min(100, Math.round((window.scrollY / totalScrollable) * 100))
         : 100;
-      const seconds = Math.floor((Date.now() - startTimeRef.current) / 1000);
-      // update visit progress
-      supabase
-        .from("last_visits")
-        .upsert(
-          {
-            user_id: user.id,
-            entity_type: "article",
-            entity_id: article.slug,
-            title: article.title,
-            scroll_percent: scrollPct,
-          },
-          { onConflict: "user_id,entity_type,entity_id" },
-        )
-        .then(() => {});
+      const seconds = effectiveSecondsRef.current;
+
+      supabase.from("last_visits").upsert(
+        { user_id: user.id, entity_type: "article", entity_id: article.slug, title: article.title, scroll_percent: scrollPct },
+        { onConflict: "user_id,entity_type,entity_id" },
+      ).then(() => {});
+
       try {
         const { data } = await supabase.rpc("award_reading_points", {
           _article_slug: article.slug,
@@ -120,11 +115,10 @@ function ArticlePage() {
           refreshProfile();
         }
       } catch {
-        // silent — server validates anyway
+        // silent
       }
     };
 
-    // Send progress periodically + on scroll (debounced)
     const interval = window.setInterval(sendProgress, 15000);
     let scrollTimer: number | null = null;
     const onScroll = () => {
@@ -134,13 +128,14 @@ function ArticlePage() {
     window.addEventListener("scroll", onScroll, { passive: true });
 
     return () => {
+      window.clearInterval(tickInterval);
       window.clearInterval(interval);
       window.removeEventListener("scroll", onScroll);
+      document.removeEventListener("visibilitychange", onVisibility);
       if (scrollTimer) window.clearTimeout(scrollTimer);
-      // Final attempt on unmount
       sendProgress();
     };
-  }, [user, article.slug, refreshProfile]);
+  }, [user, article.slug, article.title, refreshProfile]);
 
   return (
     <article className="container mx-auto px-4 py-12 max-w-3xl">

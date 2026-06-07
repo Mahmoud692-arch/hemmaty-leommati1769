@@ -70,7 +70,8 @@ import AutomationManager from "@/components/admin/AutomationManager";
 import AchievementsManager from "@/components/admin/AchievementsManager";
 import StoriesManager from "@/components/admin/StoriesManager";
 import LessonsManager from "@/components/admin/LessonsManager";
-import { Sparkles, FileStack, Megaphone, Compass, ClipboardList, Tags, Zap, Award, BookMarked, PlayCircle } from "lucide-react";
+import SuggestionsManager from "@/components/admin/SuggestionsManager";
+import { Sparkles, FileStack, Megaphone, Compass, ClipboardList, Tags, Zap, Award, BookMarked, PlayCircle, Lightbulb } from "lucide-react";
 
 interface AdminQuestion {
   id: string;
@@ -285,6 +286,7 @@ function AdminPage() {
           <TabsTrigger value="achievements"><Award className="h-4 w-4 ms-1" /> الإنجازات</TabsTrigger>
           <TabsTrigger value="stories"><BookMarked className="h-4 w-4 ms-1" /> قصص الأنبياء</TabsTrigger>
           <TabsTrigger value="lessons"><PlayCircle className="h-4 w-4 ms-1" /> الدروس</TabsTrigger>
+          <TabsTrigger value="suggestions"><Lightbulb className="h-4 w-4 ms-1" /> الاقتراحات</TabsTrigger>
           <TabsTrigger value="settings"><Settings className="h-4 w-4 ms-1" /> الإعدادات</TabsTrigger>
           <TabsTrigger value="roles"><ShieldCheck className="h-4 w-4 ms-1" /> الأدوار</TabsTrigger>
           <TabsTrigger value="audit"><History className="h-4 w-4 ms-1" /> السجل</TabsTrigger>
@@ -367,6 +369,7 @@ function AdminPage() {
         <TabsContent value="achievements"><AchievementsManager /></TabsContent>
         <TabsContent value="stories"><StoriesManager /></TabsContent>
         <TabsContent value="lessons"><LessonsManager /></TabsContent>
+        <TabsContent value="suggestions"><SuggestionsManager /></TabsContent>
         <TabsContent value="settings"><SettingsManager /></TabsContent>
         <TabsContent value="roles"><RolesManager currentUserId={user!.id} /></TabsContent>
         <TabsContent value="audit"><AuditLogViewer /></TabsContent>

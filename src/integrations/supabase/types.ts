@@ -421,6 +421,60 @@ export type Database = {
           },
         ]
       }
+      content_suggestions: {
+        Row: {
+          admin_notes: string | null
+          body: string
+          content_type: string
+          created_at: string
+          id: string
+          points_awarded: number
+          published_entity_id: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          source: string | null
+          status: string
+          target_section: string | null
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          body: string
+          content_type: string
+          created_at?: string
+          id?: string
+          points_awarded?: number
+          published_entity_id?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          source?: string | null
+          status?: string
+          target_section?: string | null
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          admin_notes?: string | null
+          body?: string
+          content_type?: string
+          created_at?: string
+          id?: string
+          points_awarded?: number
+          published_entity_id?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          source?: string | null
+          status?: string
+          target_section?: string | null
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       dynamic_content: {
         Row: {
           body: Json
@@ -550,6 +604,36 @@ export type Database = {
           hadith_collection?: string
           hadith_number?: number
           id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      hadith_read_progress: {
+        Row: {
+          effective_seconds: number
+          hadith_collection: string
+          hadith_number: number
+          id: string
+          points_awarded: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          effective_seconds?: number
+          hadith_collection: string
+          hadith_number: number
+          id?: string
+          points_awarded?: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          effective_seconds?: number
+          hadith_collection?: string
+          hadith_number?: number
+          id?: string
+          points_awarded?: boolean
+          updated_at?: string
           user_id?: string
         }
         Relationships: []
@@ -1857,6 +1941,15 @@ export type Database = {
         Args: { _answer_text: string; _publish?: boolean; _question_id: string }
         Returns: string
       }
+      admin_review_suggestion: {
+        Args: {
+          _admin_notes?: string
+          _approve: boolean
+          _id: string
+          _target_section?: string
+        }
+        Returns: Json
+      }
       admin_revoke_badge: {
         Args: { _badge_key: string; _target_user: string }
         Returns: boolean
@@ -1903,6 +1996,10 @@ export type Database = {
         Args: { _badge_key: string; _user_id: string }
         Returns: boolean
       }
+      award_hadith_reading_points: {
+        Args: { _collection: string; _number: number; _seconds: number }
+        Returns: Json
+      }
       award_reading_points: {
         Args: {
           _article_slug: string
@@ -1938,6 +2035,15 @@ export type Database = {
           needs_manual: boolean
           score: number
         }[]
+      }
+      submit_suggestion: {
+        Args: {
+          _body: string
+          _content_type: string
+          _source?: string
+          _title: string
+        }
+        Returns: string
       }
       touch_last_seen: { Args: never; Returns: undefined }
     }

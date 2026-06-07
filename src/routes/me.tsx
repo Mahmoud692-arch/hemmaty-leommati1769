@@ -108,6 +108,20 @@ function MePage() {
         </div>
       )}
 
+      {user && (
+        <Link
+          to="/me/suggest"
+          className="card-elegant rounded-2xl p-5 mt-6 flex items-center gap-4 hover:shadow-lg transition-shadow group"
+        >
+          <div className="h-12 w-12 rounded-xl bg-[var(--gold)]/15 text-[var(--gold)] flex items-center justify-center text-2xl shrink-0">💡</div>
+          <div className="flex-1 min-w-0">
+            <div className="font-bold">اقترح محتوى</div>
+            <div className="text-xs text-muted-foreground">شارك مقالاً، حديثاً، قصة أو اقتباساً واربح نقاط عند الموافقة</div>
+          </div>
+          <span className="text-muted-foreground group-hover:text-primary">←</span>
+        </Link>
+      )}
+
       <div className="text-center mt-8">
         <Link to="/" className="text-sm text-muted-foreground hover:text-primary">
           العودة للرئيسية
