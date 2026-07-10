@@ -1539,6 +1539,30 @@ export type Database = {
         }
         Relationships: []
       }
+      rate_limits: {
+        Row: {
+          action: string
+          created_at: string
+          id: string
+          user_id: string
+          window_start: string
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          id?: string
+          user_id: string
+          window_start?: string
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          id?: string
+          user_id?: string
+          window_start?: string
+        }
+        Relationships: []
+      }
       site_settings: {
         Row: {
           key: string
@@ -2009,6 +2033,14 @@ export type Database = {
         Returns: Json
       }
       change_avatar: { Args: { _new_url: string }; Returns: Json }
+      check_rate_limit: {
+        Args: {
+          _action: string
+          _max_attempts?: number
+          _window_seconds?: number
+        }
+        Returns: Json
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
