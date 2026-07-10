@@ -61,6 +61,16 @@ function SuggestPage() {
     if (title.trim().length < 3) { toast.error("العنوان قصير جداً"); return; }
     if (body.trim().length < 20) { toast.error("النص قصير جداً (20 حرف على الأقل)"); return; }
     setSubmitting(true);
+    // Rate limit: max 3 suggestions per 10 minutes
+    const { data: rl } = await supabase.rpc("check_rate_limit", {
+      _action: "submit_suggestion", _max_attempts: 3, _window_seconds: 600,
+    });
+    const rlRes = rl as { allowed?: boolean; reason?: string } | null;
+    if (rlRes && !rlRes.allowed) {
+      setSubmitting(false);
+      toast.error("تجاوزت الحد المسموح. حاول بعد قليل.");
+      return;
+    }
     const { error } = await supabase.rpc("submit_suggestion", {
       _content_type: type,
       _title: title.trim(),
@@ -73,6 +83,7 @@ function SuggestPage() {
     setTitle(""); setBody(""); setSource("");
     load();
   };
+
 
   if (loading || !user) return <div className="container mx-auto px-4 py-12 text-center text-muted-foreground">جارٍ التحميل…</div>;
 
