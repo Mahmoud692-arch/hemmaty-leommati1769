@@ -70,11 +70,22 @@ function QuestionsPage() {
       return;
     }
     setLoading(true);
+    // Rate limit: 3 questions per 10 minutes
+    const { data: rl } = await supabase.rpc("check_rate_limit", {
+      _action: "submit_question", _max_attempts: 3, _window_seconds: 600,
+    });
+    const rlRes = rl as { allowed?: boolean } | null;
+    if (rlRes && !rlRes.allowed) {
+      setLoading(false);
+      toast.error("تجاوزت الحد المسموح. حاول بعد قليل.");
+      return;
+    }
     const { error } = await supabase.from("user_questions").insert({
       user_id: user.id,
       question: parsed.data.question,
       is_anonymous: anon,
     });
+
     setLoading(false);
     if (error) {
       const msg = (error.message || "").toLowerCase();
